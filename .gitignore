@@ -1,0 +1,13 @@
+node_modules
+.env
+.env.example
+database.sqlite
+uploads
+logs
+api
+server
+backup
+*.log
+package.json
+package-lock.json
+server.js

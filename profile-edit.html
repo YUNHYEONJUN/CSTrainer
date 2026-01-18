@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프로필 수정 - CS강사양성과정</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo">CS강사양성과정</a>
+            <ul class="nav-menu">
+                <li><a href="index.html">홈</a></li>
+                <li><a href="instructors.html">강사 소개</a></li>
+                <li><a href="board-info.html">정보교류</a></li>
+                <li><a href="board-free.html">자유게시판</a></li>
+                <li><a href="#" id="authLink">로그인</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="profile-edit-container">
+            <h1>프로필 수정</h1>
+            
+            <form id="profileEditForm" class="profile-edit-form">
+                <div class="profile-image-section">
+                    <div class="current-image">
+                        <img id="profilePreview" src="" alt="프로필 사진" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect width=%22200%22 height=%22200%22 fill=%22%23f0f0f0%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 font-size=%2248%22 text-anchor=%22middle%22 dy=%22.3em%22%3E👤%3C/text%3E%3C/svg%3E'">
+                    </div>
+                    <div class="image-upload">
+                        <label for="profileImageUpload" class="btn btn-secondary" style="cursor: pointer; display: inline-block; padding: 10px 20px; background: #6c757d; color: white; border-radius: 5px;">
+                            📷 프로필 사진 업로드
+                        </label>
+                        <input type="file" id="profileImageUpload" accept="image/*" style="display: none;">
+                        <small style="display: block; margin: 10px 0; color: #666;">* 또는 아래에 이미지 URL을 입력하세요</small>
+                        <input type="text" id="profileImageUrl" placeholder="이미지 URL 입력" class="form-input" onchange="setImageFromUrl()">
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2>기본 정보</h2>
+                    <div class="form-group">
+                        <label for="name">이름 *</label>
+                        <input type="text" id="name" class="form-input" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">전화번호</label>
+                        <input type="tel" id="phone" class="form-input" placeholder="010-1234-5678">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">이메일</label>
+                        <input type="email" id="email" class="form-input" placeholder="example@email.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="organization">소속</label>
+                        <input type="text" id="organization" class="form-input" placeholder="소속 기관명">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="position">직위</label>
+                        <input type="text" id="position" class="form-input" placeholder="직위/직책">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="additionalRole">겸직/추가 역할</label>
+                        <input type="text" id="additionalRole" class="form-input" placeholder="겸직 또는 추가 역할">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="expertise">전문 분야</label>
+                        <textarea id="expertise" class="form-textarea" rows="2" placeholder="전문 분야 (쉼표로 구분)"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2>학력 및 경력</h2>
+                    
+                    <div class="form-group">
+                        <label for="education">학력</label>
+                        <textarea id="education" class="form-textarea" rows="3" placeholder="학력 사항"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="career">현장 경력</label>
+                        <textarea id="career" class="form-textarea" rows="3" placeholder="현장 경력 사항"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="teachingCareer">강의 경력</label>
+                        <textarea id="teachingCareer" class="form-textarea" rows="3" placeholder="강의 경력 사항"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="publication">저서/출판물</label>
+                        <textarea id="publication" class="form-textarea" rows="2" placeholder="저서 또는 출판물"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2>소개</h2>
+                    <div class="form-group">
+                        <label for="description">자기 소개</label>
+                        <textarea id="description" class="form-textarea" rows="5" placeholder="자기 소개를 입력하세요"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" id="cancelBtn" class="btn btn-secondary">취소</button>
+                    <button type="submit" class="btn btn-primary">저장</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>&copy; 2026 CS강사양성과정. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/profile-edit.js"></script>
+</body>
+</html>

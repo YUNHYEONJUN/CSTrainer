@@ -1,0 +1,8 @@
+.git
+docs
+node_modules
+backend
+server
+api
+test-*.html
+*.md

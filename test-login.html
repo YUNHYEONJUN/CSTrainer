@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 테스트</title>
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-box {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .log-box {
+            margin-top: 30px;
+            padding: 20px;
+            background: #ecf0f1;
+            border-radius: 5px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            padding: 5px;
+            margin-bottom: 5px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success { color: #27ae60; }
+        .error { color: #e74c3c; }
+        .info { color: #3498db; }
+    </style>
+</head>
+<body>
+    <div class="test-box">
+        <h1>🔐 로그인 테스트</h1>
+        
+        <div class="form-group">
+            <label>아이디</label>
+            <input type="text" id="username" value="admin" placeholder="아이디 입력">
+        </div>
+        
+        <div class="form-group">
+            <label>비밀번호</label>
+            <input type="password" id="password" value="admin2025!" placeholder="비밀번호 입력">
+        </div>
+        
+        <button onclick="testLogin()">로그인 테스트</button>
+        <button onclick="checkStatus()">로그인 상태 확인</button>
+        <button onclick="clearData()">localStorage 초기화</button>
+        
+        <div class="log-box" id="logBox">
+            <strong>📋 로그:</strong>
+        </div>
+    </div>
+    
+    <script>
+        const ADMIN_ACCOUNT = {
+            username: 'admin',
+            password: 'admin2025!',
+            name: '관리자',
+            email: 'admin@cstraining.kr',
+            phone: '010-0000-0000',
+            role: 'admin'
+        };
+        
+        function log(message, type = 'info') {
+            const logBox = document.getElementById('logBox');
+            const time = new Date().toLocaleTimeString('ko-KR');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry ' + type;
+            entry.textContent = `[${time}] ${message}`;
+            logBox.appendChild(entry);
+            logBox.scrollTop = logBox.scrollHeight;
+            console.log(message);
+        }
+        
+        function testLogin() {
+            log('🔍 로그인 테스트 시작...', 'info');
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            
+            log(`입력 - 아이디: ${username}, 비밀번호: ${password}`, 'info');
+            
+            // 관리자 로그인 체크
+            if (username === ADMIN_ACCOUNT.username && password === ADMIN_ACCOUNT.password) {
+                log('✅ 관리자 계정 확인', 'success');
+                
+                const adminUser = {
+                    id: 0,
+                    username: ADMIN_ACCOUNT.username,
+                    name: ADMIN_ACCOUNT.name,
+                    email: ADMIN_ACCOUNT.email,
+                    phone: ADMIN_ACCOUNT.phone,
+                    role: 'admin'
+                };
+                
+                try {
+                    localStorage.setItem('currentUser', JSON.stringify(adminUser));
+                    localStorage.setItem('authToken', 'admin_token_' + Date.now());
+                    log('✅ localStorage에 저장 완료', 'success');
+                    log('저장된 데이터: ' + JSON.stringify(adminUser, null, 2), 'success');
+                    
+                    alert('✅ 관리자 로그인 성공!\n\n2초 후 메인 페이지로 이동합니다.');
+                    
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 2000);
+                } catch (error) {
+                    log('❌ localStorage 저장 실패: ' + error.message, 'error');
+                }
+            } else {
+                log('❌ 계정 정보 불일치', 'error');
+                
+                // 일반 사용자 확인
+                const users = JSON.parse(localStorage.getItem('users') || '[]');
+                log(`등록된 일반 사용자 수: ${users.length}`, 'info');
+                
+                const user = users.find(u => u.username === username && u.password === password);
+                
+                if (user) {
+                    log('✅ 일반 사용자 로그인 성공', 'success');
+                    const { password, ...userInfo } = user;
+                    localStorage.setItem('currentUser', JSON.stringify(userInfo));
+                    localStorage.setItem('authToken', 'token_' + user.id + '_' + Date.now());
+                    
+                    alert('✅ 로그인 성공!\n\n2초 후 메인 페이지로 이동합니다.');
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 2000);
+                } else {
+                    log('❌ 아이디 또는 비밀번호가 올바르지 않습니다', 'error');
+                    alert('❌ 로그인 실패\n\n아이디 또는 비밀번호를 확인해주세요.');
+                }
+            }
+        }
+        
+        function checkStatus() {
+            log('🔍 로그인 상태 확인 중...', 'info');
+            
+            const currentUser = localStorage.getItem('currentUser');
+            const authToken = localStorage.getItem('authToken');
+            
+            if (currentUser) {
+                try {
+                    const user = JSON.parse(currentUser);
+                    log('✅ 로그인 상태: ' + user.name + ' (' + user.role + ')', 'success');
+                    log('사용자 정보: ' + JSON.stringify(user, null, 2), 'success');
+                    log('인증 토큰: ' + authToken, 'info');
+                } catch (error) {
+                    log('❌ 사용자 정보 파싱 실패: ' + error.message, 'error');
+                }
+            } else {
+                log('❌ 로그인되지 않음', 'error');
+            }
+            
+            // localStorage 전체 확인
+            log(`localStorage 항목 수: ${localStorage.length}`, 'info');
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                log(`  ${key}: ${localStorage.getItem(key).substring(0, 50)}...`, 'info');
+            }
+        }
+        
+        function clearData() {
+            if (confirm('⚠️ localStorage의 모든 데이터를 삭제하시겠습니까?')) {
+                localStorage.clear();
+                log('🗑️ localStorage 초기화 완료', 'success');
+                alert('localStorage가 초기화되었습니다.');
+            }
+        }
+        
+        // 페이지 로드 시 자동으로 상태 확인
+        window.addEventListener('DOMContentLoaded', function() {
+            log('📄 페이지 로드 완료', 'info');
+            checkStatus();
+        });
+    </script>
+</body>
+</html>
