@@ -184,6 +184,12 @@ async function handleFormSubmit(event) {
         return;
     }
 
+    // 저장 버튼 비활성화
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = '저장 중...';
+
     // 폼 데이터 수집 (수강생용)
     const formData = {
         id: currentInstructorData.id,
@@ -202,44 +208,104 @@ async function handleFormSubmit(event) {
     };
 
     try {
-        // 실제 서버가 없으므로 localStorage에 저장
+        // localStorage에 저장
         await saveToLocalStorage(formData);
         
-        alert('프로필이 저장되었습니다!');
-        window.location.href = 'member-detail.html?id=' + currentInstructorData.id;
+        // 성공 메시지 표시
+        showSuccessMessage('프로필이 성공적으로 저장되었습니다!');
+        
+        // 3초 후 상세 페이지로 이동
+        setTimeout(() => {
+            window.location.href = 'member-detail.html?id=' + currentInstructorData.id;
+        }, 2000);
+        
     } catch (error) {
-        console.error('저장 실패:', error);
-        alert('프로필 저장에 실패했습니다.');
+        console.error('❌ 저장 실패:', error);
+        
+        // 버튼 복원
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+        
+        // 상세 오류 메시지 표시
+        showErrorMessage('프로필 저장에 실패했습니다.<br>오류: ' + error.message + '<br><br>다시 시도해주세요.');
     }
 }
 
 // localStorage에 프로필 데이터 저장 (수강생용)
 async function saveToLocalStorage(formData) {
     try {
+        console.log('📝 프로필 저장 시작...', formData);
+        
         // 전체 수강생 목록 가져오기
         const response = await fetch('data/members.json?v=' + Date.now());
+        if (!response.ok) {
+            throw new Error('수강생 데이터를 불러올 수 없습니다.');
+        }
+        
         const members = await response.json();
+        console.log('📋 전체 수강생 목록 로드 완료:', members.length + '명');
         
         // 현재 수강생 정보 업데이트
         const index = members.findIndex(member => member.id === formData.id);
-        if (index !== -1) {
-            // 기존 데이터와 병합
-            members[index] = { ...members[index], ...formData };
+        
+        if (index === -1) {
+            throw new Error('해당 수강생 정보를 찾을 수 없습니다. (ID: ' + formData.id + ')');
         }
         
+        // 기존 데이터와 병합 (기존 필드 유지)
+        members[index] = { 
+            ...members[index],  // 기존 데이터 유지
+            ...formData         // 수정된 데이터로 덮어쓰기
+        };
+        
+        console.log('✏️ 수강생 정보 업데이트 완료:', members[index]);
+        
         // localStorage에 업데이트된 목록 저장
-        localStorage.setItem('membersData', JSON.stringify(members));
+        try {
+            localStorage.setItem('membersData', JSON.stringify(members));
+            console.log('💾 전체 목록 localStorage 저장 완료');
+        } catch (storageError) {
+            console.warn('⚠️ localStorage 용량 초과. 캐시를 정리합니다...');
+            
+            // 오래된 캐시 삭제
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('board_') || key.startsWith('member_cache_')) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+            
+            // 재시도
+            localStorage.setItem('membersData', JSON.stringify(members));
+            console.log('💾 캐시 정리 후 저장 완료');
+        }
         
         // 개별 수강생 데이터도 저장 (빠른 접근용)
         localStorage.setItem('member_' + formData.id, JSON.stringify(formData));
+        console.log('💾 개별 수강생 데이터 저장 완료');
         
-        console.log('✅ 프로필 저장 완료:', formData);
+        // 버전 업데이트 (캐시 무효화)
+        const currentVersion = localStorage.getItem('site_version') || '1.0.0';
+        const newVersion = incrementVersion(currentVersion);
+        localStorage.setItem('site_version', newVersion);
+        console.log('🔄 사이트 버전 업데이트:', currentVersion, '→', newVersion);
+        
+        console.log('✅ 프로필 저장 완료!');
         
         return true;
     } catch (error) {
-        console.error('저장 실패:', error);
+        console.error('❌ 저장 실패:', error);
         throw error;
     }
+}
+
+// 버전 증가 함수
+function incrementVersion(version) {
+    const parts = version.split('.');
+    const patch = parseInt(parts[2] || 0) + 1;
+    return `${parts[0]}.${parts[1]}.${patch}`;
 }
 
 // 이미지 파일 업로드 처리
@@ -277,4 +343,103 @@ function setImageFromUrl() {
     if (url) {
         document.getElementById('profilePreview').src = url;
     }
+}
+
+// 성공 메시지 표시
+function showSuccessMessage(message) {
+    // 기존 메시지 제거
+    const existingMsg = document.querySelector('.message-overlay');
+    if (existingMsg) existingMsg.remove();
+    
+    // 메시지 오버레이 생성
+    const overlay = document.createElement('div');
+    overlay.className = 'message-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    `;
+    
+    // 메시지 박스
+    const messageBox = document.createElement('div');
+    messageBox.style.cssText = `
+        background: white;
+        padding: 30px 40px;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        text-align: center;
+        max-width: 400px;
+    `;
+    
+    messageBox.innerHTML = `
+        <div style="font-size: 48px; margin-bottom: 15px;">✅</div>
+        <div style="font-size: 18px; font-weight: bold; color: #2ecc71; margin-bottom: 10px;">저장 완료!</div>
+        <div style="font-size: 14px; color: #666;">${message}</div>
+        <div style="font-size: 12px; color: #999; margin-top: 15px;">잠시 후 프로필 페이지로 이동합니다...</div>
+    `;
+    
+    overlay.appendChild(messageBox);
+    document.body.appendChild(overlay);
+}
+
+// 오류 메시지 표시
+function showErrorMessage(message) {
+    // 기존 메시지 제거
+    const existingMsg = document.querySelector('.message-overlay');
+    if (existingMsg) existingMsg.remove();
+    
+    // 메시지 오버레이 생성
+    const overlay = document.createElement('div');
+    overlay.className = 'message-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    `;
+    
+    // 메시지 박스
+    const messageBox = document.createElement('div');
+    messageBox.style.cssText = `
+        background: white;
+        padding: 30px 40px;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        text-align: center;
+        max-width: 500px;
+    `;
+    
+    messageBox.innerHTML = `
+        <div style="font-size: 48px; margin-bottom: 15px;">❌</div>
+        <div style="font-size: 18px; font-weight: bold; color: #e74c3c; margin-bottom: 10px;">저장 실패</div>
+        <div style="font-size: 14px; color: #666; line-height: 1.6;">${message}</div>
+        <button onclick="document.querySelector('.message-overlay').remove()" 
+                style="margin-top: 20px; padding: 10px 30px; background: #3498db; color: white; 
+                       border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
+            확인
+        </button>
+    `;
+    
+    overlay.appendChild(messageBox);
+    document.body.appendChild(overlay);
+    
+    // 오버레이 클릭 시 닫기
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+            overlay.remove();
+        }
+    });
 }

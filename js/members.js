@@ -3,44 +3,50 @@ document.addEventListener('DOMContentLoaded', async function() {
     // 로그인 상태 확인
     checkLoginStatus();
     
-    // ⭐ 배포 버전 확인 및 캐시 정리
-    const CURRENT_VERSION = '1.0.2';
-    const savedVersion = localStorage.getItem('site_version');
-    if (savedVersion !== CURRENT_VERSION) {
-        // 버전이 다르면 수강생 관련 캐시만 삭제
-        const keysToRemove = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key.startsWith('member_') || key === 'membersData') {
-                keysToRemove.push(key);
-            }
-        }
-        keysToRemove.forEach(key => localStorage.removeItem(key));
-        localStorage.setItem('site_version', CURRENT_VERSION);
-        console.log('✅ 캐시 업데이트 완료: v' + CURRENT_VERSION + ' (삭제된 항목: ' + keysToRemove.length + '개)');
-    }
-    
     try {
-        // 항상 JSON 파일에서 최신 데이터 로드 (캐시 무시)
+        console.log('📋 수강생 목록 로드 시작...');
+        
+        // 1. 항상 JSON 파일에서 최신 데이터 로드 (캐시 무시)
         const response = await fetch('data/members.json?v=' + Date.now());
         const members = await response.json();
+        console.log('✅ JSON 파일 로드 완료:', members.length + '명');
         
-        // 개별 수강생의 업데이트된 정보가 있으면 반영
-        const updatedMembers = members.map(member => {
-            const saved = localStorage.getItem('member_' + member.id);
-            if (saved) {
-                const savedMember = JSON.parse(saved);
-                // ⭐ JSON 파일의 profileImage를 항상 우선 사용
-                savedMember.profileImage = member.profileImage || savedMember.profileImage;
-                savedMember.emoji = member.emoji || savedMember.emoji;
-                return savedMember;
+        // 2. localStorage에 저장된 업데이트된 정보 확인
+        const cachedData = localStorage.getItem('membersData');
+        let updatedMembers = members;
+        
+        if (cachedData) {
+            try {
+                const cachedMembers = JSON.parse(cachedData);
+                console.log('💾 localStorage에서 업데이트된 데이터 발견:', cachedMembers.length + '명');
+                
+                // 3. JSON 데이터와 localStorage 데이터 병합
+                updatedMembers = members.map(member => {
+                    const cached = cachedMembers.find(m => m.id === member.id);
+                    if (cached) {
+                        // localStorage의 수정된 데이터 우선 사용
+                        // 단, profileImage는 JSON 파일이 비어있지 않으면 JSON 우선
+                        return {
+                            ...member,        // JSON 기본 데이터
+                            ...cached,        // localStorage 수정 데이터
+                            profileImage: member.profileImage || cached.profileImage,  // JSON 우선
+                            emoji: member.emoji || cached.emoji  // JSON 우선
+                        };
+                    }
+                    return member;
+                });
+                
+                console.log('🔄 데이터 병합 완료');
+            } catch (parseError) {
+                console.warn('⚠️ localStorage 데이터 파싱 실패, JSON 데이터만 사용:', parseError);
             }
-            return member;
-        });
+        }
         
         displayMembers(updatedMembers);
+        console.log('✅ 수강생 목록 표시 완료');
+        
     } catch (error) {
-        console.error('수강생 데이터를 불러오는데 실패했습니다:', error);
+        console.error('❌ 수강생 데이터를 불러오는데 실패했습니다:', error);
         displayError();
     }
 });

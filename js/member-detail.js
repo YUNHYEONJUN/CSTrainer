@@ -1,22 +1,5 @@
 // 수강생 상세 정보 로드 및 표시
 document.addEventListener('DOMContentLoaded', async function() {
-    // ⭐ 배포 버전 확인 및 캐시 정리
-    const CURRENT_VERSION = '1.0.2';
-    const savedVersion = localStorage.getItem('site_version');
-    if (savedVersion !== CURRENT_VERSION) {
-        // 버전이 다르면 수강생 관련 캐시만 삭제
-        const keysToRemove = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key.startsWith('member_') || key === 'membersData') {
-                keysToRemove.push(key);
-            }
-        }
-        keysToRemove.forEach(key => localStorage.removeItem(key));
-        localStorage.setItem('site_version', CURRENT_VERSION);
-        console.log('✅ 캐시 업데이트 완료: v' + CURRENT_VERSION + ' (삭제된 항목: ' + keysToRemove.length + '개)');
-    }
-    
     // URL에서 수강생 ID 가져오기
     const urlParams = new URLSearchParams(window.location.search);
     const memberId = parseInt(urlParams.get('id'));
@@ -27,7 +10,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     
     try {
-        // 항상 JSON 파일에서 최신 데이터 로드 (캐시 무시)
+        console.log('📋 수강생 상세 정보 로드 시작... ID:', memberId);
+        
+        // 1. 항상 JSON 파일에서 최신 데이터 로드 (캐시 무시)
         const response = await fetch('data/members.json?v=' + Date.now());
         const members = await response.json();
         let member = members.find(m => m.id === memberId);
@@ -37,25 +22,55 @@ document.addEventListener('DOMContentLoaded', async function() {
             return;
         }
         
-        // localStorage에 저장된 개별 수강생 정보가 있으면 병합
-        const savedMember = localStorage.getItem('member_' + memberId);
-        if (savedMember) {
-            const saved = JSON.parse(savedMember);
-            console.log('📦 localStorage에서 로드:', saved);
-            console.log('📄 JSON 파일에서 로드:', member);
-            // ⭐ JSON 파일의 profileImage를 항상 우선 사용
-            saved.profileImage = member.profileImage || saved.profileImage;
-            saved.emoji = member.emoji || saved.emoji;
-            console.log('✅ 병합 결과:', saved);
-            member = saved;
-        } else {
-            console.log('📄 JSON 파일에서만 로드:', member);
+        console.log('📄 JSON 파일에서 로드:', member);
+        
+        // 2. localStorage에서 전체 업데이트된 목록 확인
+        const cachedData = localStorage.getItem('membersData');
+        if (cachedData) {
+            try {
+                const cachedMembers = JSON.parse(cachedData);
+                const cachedMember = cachedMembers.find(m => m.id === memberId);
+                
+                if (cachedMember) {
+                    console.log('💾 localStorage에서 업데이트된 데이터 발견:', cachedMember);
+                    
+                    // 3. 데이터 병합 (localStorage 우선, profileImage/emoji는 JSON 우선)
+                    member = {
+                        ...member,          // JSON 기본 데이터
+                        ...cachedMember,    // localStorage 수정 데이터
+                        profileImage: member.profileImage || cachedMember.profileImage,
+                        emoji: member.emoji || cachedMember.emoji
+                    };
+                    
+                    console.log('🔄 데이터 병합 완료:', member);
+                }
+            } catch (parseError) {
+                console.warn('⚠️ localStorage 데이터 파싱 실패:', parseError);
+            }
+        }
+        
+        // 3. 개별 캐시도 확인 (하위 호환성)
+        const individualCache = localStorage.getItem('member_' + memberId);
+        if (individualCache) {
+            try {
+                const saved = JSON.parse(individualCache);
+                console.log('📦 개별 localStorage 캐시 발견:', saved);
+                member = {
+                    ...member,
+                    ...saved,
+                    profileImage: member.profileImage || saved.profileImage,
+                    emoji: member.emoji || saved.emoji
+                };
+            } catch (parseError) {
+                console.warn('⚠️ 개별 캐시 파싱 실패:', parseError);
+            }
         }
         
         console.log('🎨 최종 렌더링 데이터:', member);
         displayMemberDetail(member);
+        
     } catch (error) {
-        console.error('수강생 정보를 불러오는데 실패했습니다:', error);
+        console.error('❌ 수강생 정보를 불러오는데 실패했습니다:', error);
         displayError('수강생 정보를 불러올 수 없습니다.');
     }
 });
